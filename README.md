@@ -1,8 +1,9 @@
-# 📝Diary App
+# 📝 Diary App
 
-A simple Note Taking & Sharing Application built with FastAPI and PostgreSQL.
-Users can register, create notes, and securely share them with other users.
-Authentication is handled with JWT tokens to ensure only authorized users can access or share notes.
+A simple **Note Taking & Sharing Application** built with **FastAPI** and **PostgreSQL**.
+Users can register, create personal notes, and securely share them with other users.
+Authentication is powered by **JWT tokens**, ensuring only authorized users can access or share notes.
+Database migrations are managed with **Alembic** for scalability and maintainability.
 
 ---
 
@@ -10,24 +11,29 @@ Authentication is handled with JWT tokens to ensure only authorized users can ac
 
 * 🔐 **User Authentication**
 
-  * Register & Login with hashed passwords
-  * JWT-based authentication
+  * Register & login with hashed passwords
+  * JWT-based authentication (access tokens)
 
 * 📝 **Notes Management (CRUD)**
 
-  * Create, Read, Update, Delete notes
+  * Create, read, update, delete notes
   * Each note belongs to a user
 
 * 🤝 **Note Sharing**
 
   * Share notes with other registered users
   * Shared users can view notes
-  * Owner can revoke sharing
+  * Owners can revoke access
 
 * ✅ **Access Control**
 
-  * Only note owners & shared users can view shared notes
-  * Unauthorized access is restricted
+  * Only note owners & explicitly shared users can view a note
+  * Unauthorized access is blocked
+
+* ⚡ **Migrations with Alembic**
+
+  * Version-controlled schema changes
+  * Easy upgrades/downgrades of database schema
 
 ---
 
@@ -36,8 +42,10 @@ Authentication is handled with JWT tokens to ensure only authorized users can ac
 * **Backend:** [FastAPI](https://fastapi.tiangolo.com/)
 * **Database:** PostgreSQL
 * **ORM:** SQLAlchemy
+* **Migrations:** Alembic
 * **Authentication:** JWT (JSON Web Tokens)
 * **Password Hashing:** Passlib (bcrypt)
+* **Environment Config:** python-dotenv
 
 ---
 
@@ -45,23 +53,26 @@ Authentication is handled with JWT tokens to ensure only authorized users can ac
 
 ```
 app/
- ┣ models/           
+ ┣ models/            
  ┃ ┣ user.py
  ┃ ┣ note.py
  ┃ ┗ shared_note.py
- ┣ schemas/          
+ ┣ schemas/             
  ┃ ┣ user.py
  ┃ ┣ note.py
  ┃ ┣ shared_note.py
  ┃ ┗ token.py
- ┣ routes/          
+ ┣ routes/             
  ┃ ┣ auth.py
  ┃ ┣ note_routes.py
  ┃ ┗ shared_notes.py
- ┣ database.py       
- ┣ main.py           
-.env                 
-README.md            
+ ┣ database.py         
+ ┣ main.py             
+alembic/                
+ ┣ versions/            
+.env                    
+requirements.txt        
+README.md               
 ```
 
 ---
@@ -79,7 +90,8 @@ README.md
 
    ```bash
    python -m venv venv
-   venv\Scripts\activate      
+   venv\Scripts\activate   # On Windows
+   source venv/bin/activate  # On macOS/Linux
    ```
 
 3. **Install dependencies**
@@ -89,7 +101,6 @@ README.md
    ```
 
 4. **Set up PostgreSQL database**
-   Create a database:
 
    ```sql
    CREATE DATABASE diary;
@@ -104,7 +115,13 @@ README.md
    ACCESS_TOKEN_EXPIRE_MINUTES=30
    ```
 
-6. **Run database migrations** (if using Alembic or just create tables from models)
+6. **Run database migrations with Alembic**
+
+   ```bash
+   alembic upgrade head
+   ```
+
+7. **Start the development server**
 
    ```bash
    uvicorn app.main:app --reload
@@ -133,33 +150,3 @@ README.md
 * `GET /shared-notes/` → List notes shared with me
 
 ---
-
-## 🧪 Testing
-
-* Use **pytest** for unit tests
-* Manual testing via **Postman** or **Insomnia**
-* Run tests:
-
-  ```bash
-  pytest
-  ```
-
----
-
-## 📖 Future Improvements
-
-* Add search & filtering for notes
-* Allow multiple users per shared note (many-to-many)
-* Add frontend (React/Next.js)
-* Implement email notifications when a note is shared
-
----
-
-## 👨‍💻 Author
-
-Developed by **[Your Name]**
-For the **Take-Home Assignment** on **FastAPI + PostgreSQL**
-
----
-
-Would you like me to also generate a **`requirements.txt` file** for you with all the dependencies (FastAPI, SQLAlchemy, psycopg2, passlib, python-jose, python-dotenv, etc.) so you can include it in your project?
