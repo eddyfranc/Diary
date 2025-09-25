@@ -1,56 +1,97 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
-from jose import jwt, JWTError
-from fastapi.security import OAuth2PasswordBearer
 from app import models, schemas, database
 from app.routes.auth import get_current_user
-import os
 
+router = APIRouter( prefix="/notes", tags=["Notes"])
 
-router = APIRouter(
-    prefix="/notes",
-    tags=["notes"]
-)
-
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
-SECRET_KEY = os.getenv("SECRET_KEY")
-ALGORITHM = os.getenv("ALGORITHM")
-
-def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(database.get_db)):
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-    )
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        user_id: str = payload.get("sub")
-        if user_id is None:
-            raise credentials_exception
-    except JWTError:
-        raise credentials_exception
-
-    user = db.query(models.User).filter(models.User.id == int(user_id)).first()
-    if user is None:
-        raise credentials_exception
-    return user
-
-# CREATE NOTE 
+# Create Note
 @router.post("/", response_model=schemas.NoteResponse)
-def create_note(note: schemas.NoteCreate, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
+def create_note(
+    note: schemas.NoteCreate,
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(get_current_user),
+):
     new_note = models.Note(**note.dict(), owner_id=current_user.id)
     db.add(new_note)
     db.commit()
     db.refresh(new_note)
     return new_note
 
-# GET NOTES 
+
+# Get My Notes 
 @router.get("/", response_model=List[schemas.NoteResponse])
-def get_notes(db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
+def get_notes(
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(get_current_user),
+):
     return db.query(models.Note).filter(models.Note.owner_id == current_user.id).all()
 
 
-# Share Note 
+# Get Single Note (owner or shared user) 
+@router.get("/{id}", response_model=schemas.NoteResponse)
+def get_note(
+    id: int,
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    note = db.query(models.Note).filter(models.Note.id == id).first()
+    if not note:
+        raise HTTPException(status_code=404, detail="Note not found")
+
+    # if not owner, check if note is shared with current user
+    if note.owner_id != current_user.id:
+        shared = (
+            db.query(models.SharedNote)
+            .filter(
+                models.SharedNote.note_id == id,
+                models.SharedNote.shared_with_user_id == current_user.id,
+            )
+            .first()
+        )
+        if not shared:
+            raise HTTPException(status_code=403, detail="Not authorized to view this note")
+
+    return note
+
+
+# Owner Update Note
+@router.put("/{id}", response_model=schemas.NoteResponse)
+def update_note(
+    id: int,
+    note_data: schemas.NoteCreate,
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    note = db.query(models.Note).filter(models.Note.id == id, models.Note.owner_id == current_user.id).first()
+    if not note:
+        raise HTTPException(status_code=404, detail="Note not found or not owned by you")
+
+    note.title = note_data.title
+    note.content = note_data.content
+    db.commit()
+    db.refresh(note)
+    return note
+
+
+# Owner Delete Note
+@router.delete("/{id}")
+def delete_note(
+    id: int,
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    note = db.query(models.Note).filter(models.Note.id == id, models.Note.owner_id == current_user.id).first()
+    if not note:
+        raise HTTPException(status_code=404, detail="Note not found or not owned by you")
+
+    db.delete(note)
+    db.commit()
+    return {"message": "Note deleted successfully"}
+
+
+# Share Note
 @router.post("/{id}/share", response_model=schemas.SharedNoteResponse)
 def share_note(
     id: int,
@@ -74,8 +115,33 @@ def share_note(
     return shared_note
 
 
-#  Get Notes Shared With Me 
-@router.get("/shared-with-me", response_model=list[schemas.NoteResponse])
+# Revoke Sharing for only owner
+@router.delete("/{id}/share/{user_id}")
+def revoke_share(
+    id: int,
+    user_id: int,
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    note = db.query(models.Note).filter(models.Note.id == id, models.Note.owner_id == current_user.id).first()
+    if not note:
+        raise HTTPException(status_code=404, detail="Note not found or not owned by you")
+
+    shared = (
+        db.query(models.SharedNote)
+        .filter(models.SharedNote.note_id == id, models.SharedNote.shared_with_user_id == user_id)
+        .first()
+    )
+    if not shared:
+        raise HTTPException(status_code=404, detail="Sharing not found")
+
+    db.delete(shared)
+    db.commit()
+    return {"message": f"Sharing revoked for user {user_id}"}
+
+
+# Get Notes Shared With Me 
+@router.get("/shared-with-me", response_model=List[schemas.NoteResponse])
 def get_shared_notes(
     db: Session = Depends(database.get_db),
     current_user: models.User = Depends(get_current_user),

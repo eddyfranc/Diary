@@ -2,6 +2,7 @@ from sqlalchemy import Column, Integer, String
 from sqlalchemy.orm import relationship
 from app.database import Base
 
+
 class User(Base):
     __tablename__ = "users"
 
@@ -10,6 +11,6 @@ class User(Base):
     email = Column(String, unique=True, index=True, nullable=False)
     hashed_password = Column(String, nullable=False)
 
-    # relationship with notes
-    notes = relationship("Note", back_populates="owner")
-    shared_notes = relationship("SharedNote", back_populates="shared_with_user")
+    # Relationships
+    notes = relationship("Note", back_populates="owner", cascade="all, delete-orphan")
+    shared_notes = relationship("SharedNote", back_populates="shared_with_user", cascade="all, delete-orphan")
