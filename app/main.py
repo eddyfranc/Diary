@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from app.database import Base, engine
-from app.models import user
+from app.models.user import User
 from app.routes import auth
 
 # Create database tables
@@ -14,4 +14,4 @@ app.include_router(auth.router)
 
 @app.get("/")
 def root():
-    return {"message": "Welcome to the Diary Note App 🚀"}
+    return {"message": "Diary Note App "}
