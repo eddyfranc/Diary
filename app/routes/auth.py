@@ -9,10 +9,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-router = APIRouter(
-    prefix="/auth",
-    tags=["auth"]
-)
+router = APIRouter( prefix="/auth", tags=["auth"])
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -32,7 +29,7 @@ def create_access_token(data: dict, expires_delta: timedelta = None):
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
-# ---------------- REGISTER ----------------
+#  REGISTER 
 @router.post("/register", response_model=schemas.UserResponse)
 def register(user: schemas.UserCreate, db: Session = Depends(database.get_db)):
     # check if email exists
@@ -47,7 +44,7 @@ def register(user: schemas.UserCreate, db: Session = Depends(database.get_db)):
     db.refresh(new_user)
     return new_user
 
-# ---------------- LOGIN ----------------
+#  LOGIN 
 @router.post("/login", response_model=schemas.Token)
 def login(user: schemas.UserCreate, db: Session = Depends(database.get_db)):
     db_user = db.query(models.User).filter(models.User.email == user.email).first()
@@ -57,3 +54,5 @@ def login(user: schemas.UserCreate, db: Session = Depends(database.get_db)):
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     token = create_access_token(data={"sub": str(db_user.id)}, expires_delta=access_token_expires)
     return {"access_token": token, "token_type": "bearer"}
+
+
