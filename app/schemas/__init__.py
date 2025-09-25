@@ -1,7 +1,7 @@
 from pydantic import BaseModel, EmailStr
 from typing import Optional, List
 
-# ---------- USER SCHEMAS ----------
+# USER SCHEMAS 
 class UserBase(BaseModel):
     username: str
     email: EmailStr
@@ -16,7 +16,7 @@ class UserResponse(UserBase):
         orm_mode = True
 
 
-# ---------- TOKEN SCHEMAS ----------
+# TOKEN SCHEMAS 
 class Token(BaseModel):
     access_token: str
     token_type: str
@@ -25,7 +25,7 @@ class TokenData(BaseModel):
     id: Optional[int] = None
 
 
-# ---------- NOTE SCHEMAS ----------
+# NOTE SCHEMAS  
 class NoteBase(BaseModel):
     title: str
     content: str
@@ -39,3 +39,19 @@ class NoteResponse(NoteBase):
 
     class Config:
         orm_mode = True
+
+# SHARED NOTE SCHEMAS
+class SharedNoteBase(BaseModel):
+    note_id: int
+    shared_with_user_id: int
+
+class SharedNoteCreate(SharedNoteBase):
+    pass
+
+class SharedNoteResponse(BaseModel):
+    id: int
+    note_id: int
+    shared_with_user_id: int
+
+    class Config:
+        from_attributes = True

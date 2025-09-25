@@ -12,3 +12,4 @@ class User(Base):
 
     # relationship with notes
     notes = relationship("Note", back_populates="owner")
+    shared_notes = relationship("SharedNote", back_populates="shared_with_user")

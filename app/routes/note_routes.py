@@ -4,7 +4,9 @@ from typing import List
 from jose import jwt, JWTError
 from fastapi.security import OAuth2PasswordBearer
 from app import models, schemas, database
+from app.routes.auth import get_current_user
 import os
+
 
 router = APIRouter(
     prefix="/notes",
@@ -33,7 +35,7 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
         raise credentials_exception
     return user
 
-# ---------------- CREATE NOTE ----------------
+# CREATE NOTE 
 @router.post("/", response_model=schemas.NoteResponse)
 def create_note(note: schemas.NoteCreate, db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
     new_note = models.Note(**note.dict(), owner_id=current_user.id)
@@ -42,7 +44,46 @@ def create_note(note: schemas.NoteCreate, db: Session = Depends(database.get_db)
     db.refresh(new_note)
     return new_note
 
-# ---------------- GET NOTES ----------------
+# GET NOTES 
 @router.get("/", response_model=List[schemas.NoteResponse])
 def get_notes(db: Session = Depends(database.get_db), current_user: models.User = Depends(get_current_user)):
     return db.query(models.Note).filter(models.Note.owner_id == current_user.id).all()
+
+
+# Share Note 
+@router.post("/{id}/share", response_model=schemas.SharedNoteResponse)
+def share_note(
+    id: int,
+    shared_data: schemas.SharedNoteCreate,
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    note = db.query(models.Note).filter(models.Note.id == id, models.Note.owner_id == current_user.id).first()
+    if not note:
+        raise HTTPException(status_code=404, detail="Note not found or not owned by you")
+
+    # Ensure target user exists
+    target_user = db.query(models.User).filter(models.User.id == shared_data.shared_with_user_id).first()
+    if not target_user:
+        raise HTTPException(status_code=404, detail="Target user not found")
+
+    shared_note = models.SharedNote(note_id=id, shared_with_user_id=shared_data.shared_with_user_id)
+    db.add(shared_note)
+    db.commit()
+    db.refresh(shared_note)
+    return shared_note
+
+
+#  Get Notes Shared With Me 
+@router.get("/shared-with-me", response_model=list[schemas.NoteResponse])
+def get_shared_notes(
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    shared_notes = (
+        db.query(models.Note)
+        .join(models.SharedNote)
+        .filter(models.SharedNote.shared_with_user_id == current_user.id)
+        .all()
+    )
+    return shared_notes
