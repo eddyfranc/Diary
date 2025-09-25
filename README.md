@@ -49,34 +49,6 @@ Database migrations are managed with **Alembic** for scalability and maintainabi
 
 ---
 
-## 📂 Project Structure
-
-```
-app/
- ┣ models/            
- ┃ ┣ user.py
- ┃ ┣ note.py
- ┃ ┗ shared_note.py
- ┣ schemas/             
- ┃ ┣ user.py
- ┃ ┣ note.py
- ┃ ┣ shared_note.py
- ┃ ┗ token.py
- ┣ routes/             
- ┃ ┣ auth.py
- ┃ ┣ note_routes.py
- ┃ ┗ shared_notes.py
- ┣ database.py         
- ┣ main.py             
-alembic/                
- ┣ versions/            
-.env                    
-requirements.txt        
-README.md               
-```
-
----
-
 ## ⚙️ Setup & Installation
 
 1. **Clone the repository**

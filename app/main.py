@@ -18,4 +18,4 @@ app.include_router(shared_notes.router)
 
 @app.get("/")
 def root():
-    return {"message": "Diary Note App "}
+    return {"message": "Diary"}
